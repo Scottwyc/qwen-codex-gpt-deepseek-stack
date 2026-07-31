@@ -1,6 +1,6 @@
-# qwen-gpt-stack
+# qwen-codex-gpt-deepseek-stack
 
-**综合代理 + Qwen Code + GPT（Platform API / ChatGPT OAuth）的一体化方案**
+**Qwen Code + Codex CLI + GPT + DeepSeek 四合一综合代理方案**
 
 通过一个本地综合代理，让 [Qwen Code](https://github.com/QwenLM/Qwen-Code) 和 [Codex CLI](https://github.com/openai/codex) 同时使用：
 - **GPT 模型**（gpt-5.4 / 5.5 / 5.6 系列）— 走 **ChatGPT 订阅 OAuth** 或 **OpenAI Platform API**
