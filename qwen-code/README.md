@@ -47,3 +47,30 @@ vim ~/.qwen/settings.json
 - **ChatGPT 后端不支持 `max_output_tokens` / `max_tokens`**：任何输出长度控制参数都会返回 400
 - **`reasoning.effort=none` 输出预算低**：约 400 tokens，复杂工具任务会被截断。使用 `medium`（约 3000+ tokens）
 - **多模态图片**：Qwen Code 发送 `image_url`，代理自动转换为后端支持的 `input_image`
+
+## Platform API 直连（可选，不经过代理）
+
+有 OpenAI Platform API key 时，可让 `gpt-5.5` 直连 `api.openai.com`：
+
+```jsonc
+{
+  "id": "gpt-5.5",
+  "name": "gpt-5.5",
+  "envKey": "OPENAI_API_KEY",
+  "baseUrl": "https://api.openai.com/v1",
+  "generationConfig": {
+    "timeout": 120000,
+    "contextWindowSize": 1000000,
+    "samplingParams": {
+      "reasoning_effort": "none",
+      "max_completion_tokens": 8192
+    }
+  }
+}
+```
+
+⚠️ 注意：
+- **id 必须是官方模型名**（不能带自定义后缀）
+- **官方限制**：gpt-5.x 在 `/v1/chat/completions` 中带 tools 时 `reasoning_effort` 必须为 `none`（Qwen Code 是 agent 模式总带 tools）→ 直连**无推理**
+- 需要 `samplingParams`（否则 Qwen Code 发 nested `reasoning` → 400）和 `max_completion_tokens`（替代 `max_tokens`）
+- 需要推理能力时推荐走代理（`-chatgpt`，medium 动态降级）

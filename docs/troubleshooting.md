@@ -21,6 +21,9 @@
 | 14 | 400 `Invalid value: 'image_url'` | 图片消息未转换 | `image_url` → `input_image` |
 | 15 | 输出截断（~400 tokens） | `reasoning_effort=none` 压低 ChatGPT 后端输出预算 | 改为 `medium`（~3000+ tokens） |
 | 16 | **Codex turn hang（GPT OAuth）** | 透传流在 `response.completed` 后终止，keep-alive 连接不关闭，Codex 等待 `response.done` | 补发标准 `response.done` + `[DONE]` |
+| 17 | **Platform API 直连流式 hang** | direct 透传 keep-alive 不关 + 无 `[DONE]` 检测 | `Connection: close` + `[DONE]` 检测 + `shutdown(SHUT_WR)` |
+| 18 | **Platform API 400 reasoning/max_tokens** | Qwen Code 发 Responses 风格字段（nested `reasoning`、`max_tokens`），官方 Chat Completions 不接受 | body 清理：`reasoning` dict → `reasoning_effort`，`max_tokens` → `max_completion_tokens` |
+| 18b | **Platform API 400 tools+reasoning** | 官方限制 gpt-5.x 在 /v1/chat/completions 中 tools 时 reasoning 必须 none | 有 tools 时动态降级 `reasoning_effort=none` |
 
 ## 关键修复细节
 
@@ -82,6 +85,61 @@ data: [DONE]
 
 **验证**：`codex exec` 之前 40+ 秒不退出；修复后正常完成。
 复杂工具任务（mkdir → write_file → read 回读）端到端成功，产物验证存在。
+
+## turn hang 最终定论（2026-08-01）
+
+**turn hang 根因完全在综合代理的协议转换层，codex / Qwen Code 客户端本身无 bug。**
+
+| 证据 | 说明 |
+|------|------|
+| fix 4 / fix 16 | 代理 SSE 终止行为错误（keep-alive 不关 / 缺 `response.done`） |
+| codex 直连官方（`-p gpt`） | 复杂任务 39.5s 完整执行，无 hang |
+| Qwen Code 直连官方（gpt-5.5） | 复杂流水线完整执行，无 hang |
+
+codex 按官方协议等待 `response.done` 是正确行为；代理违反协议导致客户端无限等待。
+
+## Platform API 直连指南（Qwen Code + api.openai.com）
+
+**可行，但官方限制：gpt-5.x 在 `/v1/chat/completions` 中 tools 时 `reasoning_effort` 必须为 `none`**。
+Qwen Code 是 agent 模式（任何请求都带 tools），因此直连时**无推理**。
+
+### 配置（settings.json）
+
+```jsonc
+{
+  "id": "gpt-5.5",
+  "name": "gpt-5.5",
+  "envKey": "OPENAI_API_KEY",
+  "baseUrl": "https://api.openai.com/v1",
+  "generationConfig": {
+    "timeout": 120000,
+    "contextWindowSize": 1000000,
+    "samplingParams": {
+      "reasoning_effort": "none",
+      "max_completion_tokens": 8192
+    }
+  }
+}
+```
+
+要点：
+- **id 必须是官方模型名**（不能带自定义后缀，会 404）
+- 必须设置 `samplingParams`（否则 Qwen Code 注入 nested `reasoning` dict → 400）
+- `max_completion_tokens` 替代 `max_tokens`（gpt-5.x 不支持后者）
+
+### 验证结果（2026-08-01 独立 Qwen Code 窗口实测）
+
+- 工具调用 ✅（`Shell echo` 输出正确）
+- 复杂流水线 ✅（写脚本→运行→统计→读→报告→验证，5 产物全生成，60s 内完成）
+- turn hang ✅ 无（官方原生 SSE 自带 `[DONE]`）
+
+### 直连 vs 走代理
+
+| 维度 | 直连官方 | 走代理（-chatgpt） |
+|------|---------|-------------------|
+| reasoning | ❌ 必须 none | ✅ medium（动态降级） |
+| 输出预算 | 固定 max_completion_tokens | 长输出支持 |
+| 推荐场景 | 轻量查询 | 复杂编码/推理任务 |
 
 ## ChatGPT 后端限制（不可绕过）
 

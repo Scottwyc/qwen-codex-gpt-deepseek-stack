@@ -1842,8 +1842,31 @@ class ProxyHandler(BaseHTTPRequestHandler):
         stream = body.get("stream", False)
         requested_model = body.get("model", GPT_DEFAULT_MODEL)
 
-        # 清理 body：移除代理内部字段
+        # 清理 body：移除代理内部字段 + 兼容官方 Chat Completions API
+        # fix 18: Qwen Code 可能发送 Responses 风格的 reasoning dict，官方 Chat Completions 只认 reasoning_effort
         clean_body = {k: v for k, v in body.items() if k not in ("thinking",)}
+        reasoning = clean_body.pop("reasoning", None)
+        if isinstance(reasoning, dict) and reasoning.get("effort"):
+            clean_body["reasoning_effort"] = reasoning["effort"]
+        elif isinstance(reasoning, dict) and reasoning.get("reasoning_effort"):
+            clean_body["reasoning_effort"] = reasoning["reasoning_effort"]
+        clean_body.pop("previous_response_id", None)
+        clean_body.pop("store", None)
+        clean_body.pop("instructions", None)
+        # max_output_tokens 是 Responses 字段 → Chat Completions 的 max_completion_tokens
+        if "max_output_tokens" in clean_body and "max_completion_tokens" not in clean_body:
+            clean_body["max_completion_tokens"] = clean_body.pop("max_output_tokens")
+        # gpt-5.x 系列不支持 max_tokens，需转 max_completion_tokens
+        if "max_tokens" in clean_body and "max_completion_tokens" not in clean_body:
+            clean_body["max_completion_tokens"] = clean_body.pop("max_tokens")
+        # fix 18b: 官方 API 限制 — gpt-5.x 在 /v1/chat/completions 中
+        # reasoning_effort≠none 时不支持 function tools。有 tools 时降级为 none。
+        if clean_body.get("tools") and clean_body.get("reasoning_effort") not in (None, "none"):
+            log.info(
+                f"GPT direct: tools + reasoning_effort={clean_body.get('reasoning_effort')} "
+                f"→ downgrade to 'none' (official API restriction)"
+            )
+            clean_body["reasoning_effort"] = "none"
         clean_body["model"] = requested_model
 
         # 通过代理访问外网（如果设置了 HTTPS_PROXY）
@@ -1877,22 +1900,39 @@ class ProxyHandler(BaseHTTPRequestHandler):
 
             if stream:
                 # Streaming: 逐块转发 SSE
+                # fix 17: Connection: close + [DONE] 检测 + SHUT_WR（防 turn hang）
                 self.send_response(200)
                 self.send_header("Content-Type", "text/event-stream")
                 self.send_header("Cache-Control", "no-cache")
-                self.send_header("Connection", "keep-alive")
+                self.send_header("Connection", "close")
                 self.send_header("Access-Control-Allow-Origin", "*")
                 self.end_headers()
                 try:
+                    buf = b""
                     while True:
                         chunk = resp.read(4096)
                         if not chunk:
                             break
                         self.wfile.write(chunk)
                         self.wfile.flush()
+                        buf += chunk
+                        # 检测到 [DONE] 后提前结束，避免上游 keep-alive 导致客户端挂起
+                        if b"data: [DONE]" in buf[-8192:]:
+                            break
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
                 except Exception as e:
                     log.err(f"GPT direct stream relay error: {e}")
                 finally:
+                    try:
+                        self.wfile.flush()
+                    except Exception:
+                        pass
+                    try:
+                        self.connection.shutdown(socket.SHUT_WR)
+                    except Exception:
+                        pass
+                    self.close_connection = True
                     conn.close()
             else:
                 # Non-streaming: 直接返回 JSON
