@@ -36,25 +36,28 @@
 | [`proxy/`](proxy/) | 综合代理（基于 codex-deepseek 扩展，见下方引用） |
 | [`qwen-code/`](qwen-code/) | Qwen Code 配置模板（脱敏）与集成说明 |
 | [`chatgpt-oauth/`](chatgpt-oauth/) | ChatGPT OAuth 设备码登录流程 |
+| [`docs/codex-dual-mode.md`](docs/codex-dual-mode.md) | **推荐架构**：Codex GPT 直连 + DS 走代理双 profile |
 | [`tests/`](tests/) | 回归测试脚本 |
-| [`docs/troubleshooting.md`](docs/troubleshooting.md) | 15 项已知问题与修复记录 |
+| [`docs/troubleshooting.md`](docs/troubleshooting.md) | 16 项已知问题与修复记录 |
 
 ## 快速开始
 
 ```bash
-# 1. 启动综合代理
+# 1. 启动综合代理（DS 需要；GPT 直连不需要代理）
 cd proxy
 cp .env.example .env   # 填入 DeepSeek API key
 ./start.sh             # 监听 127.0.0.1:11435
 
-# 2. ChatGPT OAuth 登录（可选，使用订阅账号）
-codex login            # 生成 ~/.codex/auth.json
+# 2. ChatGPT OAuth 登录（GPT 直连必需）
+codex login --device-auth   # 生成 ~/.codex/auth.json
 
-# 3. 配置 Qwen Code
+# 3. Codex 双模使用（推荐架构，详见 docs/codex-dual-mode.md）
+codex -p gpt    # GPT 直连（ChatGPT OAuth，无 turn hang）
+codex -p ds     # DeepSeek 走综合代理
+
+# 4. Qwen Code 也可用（可选）
 cp qwen-code/settings.example.json ~/.qwen/settings.json
 # 编辑 env 部分填入真实 key（ChatGPT OAuth 模式 OPENAI_API_KEY 可留空）
-
-# 4. Qwen Code 中 /model 选择 gpt-5.6-sol [ChatGPT]
 ```
 
 ## 验证
