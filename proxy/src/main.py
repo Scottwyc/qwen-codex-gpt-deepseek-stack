@@ -697,6 +697,28 @@ def _responses_sse_terminal_seen(buffer: bytes) -> bool:
     )
 
 
+def _extract_responses_id(buffer: bytes) -> str | None:
+    """从透传的 SSE buffer 中提取最近一个 response.completed 的 response.id。"""
+    text = buffer.decode("utf-8", errors="ignore")
+    last_id = None
+    for line in text.splitlines():
+        line = line.strip()
+        if not line.startswith("data: "):
+            continue
+        js = line[6:]
+        if js in ("[DONE]",):
+            continue
+        try:
+            evt = json.loads(js)
+            if evt.get("type") in ("response.completed", "response.failed"):
+                rid = evt.get("response", {}).get("id")
+                if rid:
+                    last_id = rid
+        except (json.JSONDecodeError, ValueError):
+            continue
+    return last_id
+
+
 def _parse_responses_sse_to_response(resp) -> tuple[dict | None, str]:
     """Aggregate an upstream Responses SSE stream into the final response object."""
     completed_response = None
@@ -1548,6 +1570,30 @@ class ProxyHandler(BaseHTTPRequestHandler):
                             f"GPT upstream terminal event observed; closing stream "
                             f"model={model}"
                         )
+                        # 读完上游剩余数据（不丢字节）
+                        while True:
+                            tail = resp.read(4096)
+                            if not tail:
+                                break
+                            yield tail
+                            terminal_buf += tail
+                        # 补发标准 response.done 事件（Responses API 流的最终事件）。
+                        # Codex 依赖它在 response.completed 之后结束 turn；
+                        # 若连接保持 keep-alive 且无此事件，客户端会永久等待 → turn hang。
+                        resp_id = _extract_responses_id(terminal_buf) or _rand_id("resp")
+                        done_payload = {
+                            "type": "response.done",
+                            "response": {
+                                "id": resp_id,
+                                "object": "response",
+                                "status": "completed",
+                                "model": model,
+                                "output": [],
+                                "usage": None,
+                            },
+                        }
+                        yield f"event: response.done\ndata: {json.dumps(done_payload, ensure_ascii=False)}\n\n"
+                        yield "event: done\ndata: [DONE]\n\n"
                         return
             except socket.timeout as e:
                 msg = (

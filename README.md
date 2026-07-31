@@ -78,7 +78,7 @@ bash tests/test_complex_tool_call.sh
 - **GPT 双重路由**：ChatGPT OAuth（订阅）优先，Platform API key 回退
 - **Chat Completions ↔ Responses 全格式转换**：消息、tools、tool_choice、reasoning、多模态
 - **SSE 流式翻译**：`function_call` 事件 → OpenAI 标准 `tool_calls` 增量格式
-- **15 项生产环境 bug 修复**（详见 `docs/troubleshooting.md`）
+- **16 项生产环境 bug 修复**（详见 `docs/troubleshooting.md`）
 
 ## License
 

@@ -20,6 +20,7 @@
 | 13 | **tool call 循环调用（空参数）** | `function_call_arguments.delta` 重复带 id + 发送累计值，客户端按 id 去重跳过 | 按 OpenAI 标准：delta 不带 id、发送增量 |
 | 14 | 400 `Invalid value: 'image_url'` | 图片消息未转换 | `image_url` → `input_image` |
 | 15 | 输出截断（~400 tokens） | `reasoning_effort=none` 压低 ChatGPT 后端输出预算 | 改为 `medium`（~3000+ tokens） |
+| 16 | **Codex turn hang（GPT OAuth）** | 透传流在 `response.completed` 后终止，keep-alive 连接不关闭，Codex 等待 `response.done` | 补发标准 `response.done` + `[DONE]` |
 
 ## 关键修复细节
 
@@ -52,6 +53,35 @@
 
 `reasoning_effort=none` 是为规避**官方 OpenAI API** 的 `400 Function tools with reasoning_effort`
 错误而设置，但 ChatGPT 后端（`chatgpt.com/backend-api/codex/responses`）**支持** reasoning + tools。
+
+### 16：Codex turn hang（ChatGPT OAuth 路径）
+
+**症状**：Codex 调用 GPT（ChatGPT OAuth）时，代理 2 秒内完成响应（日志见
+`terminal event observed`），但 Codex 客户端永久等待，进程不退出（turn hang）。
+
+**根因**：`/responses` 路径是**字节级透传**上游 ChatGPT 后端的 SSE 流。透传循环检测到
+`response.completed`（`_responses_sse_terminal_seen`）后立即 `return` 结束生成器。
+但 `_sse_response` 使用 `Connection: keep-alive`（为兼容 Codex 不主动关闭），
+连接保持打开却无后续数据。Codex 客户端在 `response.completed` 之后还期待
+**`response.done`**（官方 Responses API 流的最终事件）来结束 turn → 永久 `epoll_wait`。
+
+curl 测试不暴露此问题（curl 读完响应后自行关闭连接或超时退出），只有真实 Codex
+客户端会 hang。
+
+**修复**：透传检测到 terminal 事件后：
+1. 继续读完上游剩余数据（不丢字节）
+2. 解析上游 `response.completed` 中的真实 `response.id`
+3. 补发标准事件：
+```python
+event: response.done
+data: {"type": "response.done", "response": {"id": "<上游id>", ...}}
+
+event: done
+data: [DONE]
+```
+
+**验证**：`codex exec` 之前 40+ 秒不退出；修复后正常完成。
+复杂工具任务（mkdir → write_file → read 回读）端到端成功，产物验证存在。
 
 ## ChatGPT 后端限制（不可绕过）
 
