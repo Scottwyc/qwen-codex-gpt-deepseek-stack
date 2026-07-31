@@ -1,0 +1,66 @@
+{
+  "models": [
+    {
+      "slug": "deepseek-v4-pro",
+      "display_name": "deepseek-v4-pro",
+      "description": "deepseek-v4-pro via codex-deepseek proxy",
+      "visibility": "list",
+      "supported_in_api": true,
+      "priority": 10,
+      "context_window": 262144,
+      "max_context_window": 1048576,
+      "effective_context_window_percent": 95,
+      "auto_compact_token_limit": 196608,
+      "max_completion_tokens": 32768,
+      "input_modalities": [
+        "text"
+      ],
+      "output_modalities": [
+        "text"
+      ],
+      "supports_image_detail_original": false,
+      "supports_parallel_tool_calls": true,
+      "supports_search_tool": false,
+      "web_search_tool_type": "text_and_image",
+      "apply_patch_tool_type": "freeform",
+      "shell_type": "shell_command",
+      "supports_reasoning_summaries": false,
+      "default_reasoning_summary": "none",
+      "default_reasoning_level": "high",
+      "supported_reasoning_levels": [
+        {
+          "effort": "low",
+          "description": "Fast responses"
+        },
+        {
+          "effort": "medium",
+          "description": "Balanced speed and depth"
+        },
+        {
+          "effort": "high",
+          "description": "Deep reasoning for complex problems"
+        }
+      ],
+      "support_verbosity": false,
+      "default_verbosity": "medium",
+      "truncation_policy": {
+        "mode": "tokens",
+        "limit": 10000
+      },
+      "base_instructions": "You are a coding agent powered by deepseek-v4-pro.",
+      "cost": {
+        "input": 0,
+        "output": 0
+      },
+      "release_date": "2025-01-01",
+      "last_updated": "2025-01-01",
+      "structured_output": false,
+      "open_weights": false,
+      "attachment": false,
+      "experimental_supported_tools": [],
+      "additional_speed_tiers": [],
+      "availability_nux": null,
+      "upgrade": null
+    }
+  ]
+}

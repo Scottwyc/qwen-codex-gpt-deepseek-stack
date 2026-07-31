@@ -1,0 +1,288 @@
+// ============================================================
+// Qwen Code settings 配置模板（脱敏版）
+// 本文件不包含任何真实 API Key，发布安全。
+// 用法：
+//   1. 将本文件复制为 ~/.qwen/settings.json
+//   2. 替换 env 中的占位符为真实 key（ChatGPT OAuth 模式 OPENAI_API_KEY 可为空）
+//   3. GPT 模型 baseUrl 指向本地综合代理 http://127.0.0.1:11435/v1
+// 关键配置说明：
+//   - gpt-5.6 系列 reasoning_effort=medium：ChatGPT 后端在 none 时输出预算仅 ~400 tokens，medium 时 ~3000+
+//   - 不要设置 max_completion_tokens：ChatGPT 后端不支持（400 Unsupported parameter）
+//   - -chatgpt 后缀模型走 ChatGPT OAuth（设备码登录），非 -chatgpt 走 Platform API
+// ============================================================
+{
+  "security": {
+    "auth": {
+      "selectedType": "openai"
+    }
+  },
+  "modelProviders": {
+    "openai": [
+      {
+        "id": "deepseek-v4-flash",
+        "name": "deepseek-v4-flash",
+        "envKey": "DEEPSEEK_API_KEY",
+        "baseUrl": "https://api.deepseek.com",
+        "generationConfig": {
+          "timeout": 120000,
+          "contextWindowSize": 1000000,
+          "reasoning": {
+            "effort": "high"
+          },
+          "samplingParams": {
+            "temperature": 0.7,
+            "max_tokens": 81920
+          }
+        }
+      },
+      {
+        "id": "deepseek-v4-pro",
+        "name": "deepseek-v4-pro",
+        "envKey": "DEEPSEEK_API_KEY",
+        "baseUrl": "https://api.deepseek.com",
+        "generationConfig": {
+          "timeout": 120000,
+          "contextWindowSize": 1000000,
+          "reasoning": {
+            "effort": "max"
+          },
+          "samplingParams": {
+            "temperature": 0.7,
+            "max_tokens": 81920
+          }
+        }
+      },
+      {
+        "id": "qwen3.6-plus",
+        "name": "[ModelStudio Standard] qwen3.6-plus",
+        "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "envKey": "DASHSCOPE_API_KEY"
+      },
+      {
+        "id": "qwen-max-2026-01-23",
+        "name": "[ModelStudio Standard] qwen-max-2026-01-23",
+        "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "envKey": "DASHSCOPE_API_KEY"
+      },
+      {
+        "id": "qwen3.6-plus-2026-04-02",
+        "name": "[ModelStudio Standard] qwen3.6-plus-2026-04-02",
+        "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "envKey": "DASHSCOPE_API_KEY"
+      },
+      {
+        "id": "qwen3.5-plus",
+        "name": "[ModelStudio Standard] qwen3.5-plus",
+        "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "envKey": "DASHSCOPE_API_KEY"
+      },
+      {
+        "id": "qwen3-coder-plus",
+        "name": "[ModelStudio Standard] qwen3-coder-plus",
+        "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "envKey": "DASHSCOPE_API_KEY"
+      },
+      {
+        "id": "qwen-plus",
+        "name": "[ModelStudio Standard] qwen-plus",
+        "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "envKey": "DASHSCOPE_API_KEY"
+      },
+      {
+        "id": "glm-5",
+        "name": "[ModelStudio Standard] glm-5",
+        "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "envKey": "DASHSCOPE_API_KEY"
+      },
+      {
+        "id": "kimi-k2.5",
+        "name": "[ModelStudio Standard] kimi-k2.5",
+        "baseUrl": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "envKey": "DASHSCOPE_API_KEY"
+      },
+      {
+        "id": "gpt-5.4",
+        "name": "gpt-5.4",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "contextWindowSize": 1000000,
+          "samplingParams": {
+            "temperature": 0.7
+          }
+        }
+      },
+      {
+        "id": "gpt-5.4-chatgpt",
+        "name": "gpt-5.4 [ChatGPT]",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "contextWindowSize": 1000000,
+          "samplingParams": {
+            "temperature": 0.7
+          }
+        }
+      },
+      {
+        "id": "gpt-5.5",
+        "name": "gpt-5.5",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "contextWindowSize": 1000000
+        }
+      },
+      {
+        "id": "gpt-5.5-chatgpt",
+        "name": "gpt-5.5 [ChatGPT]",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "contextWindowSize": 1000000
+        }
+      },
+      {
+        "id": "gpt-5.6-sol",
+        "name": "gpt-5.6-sol",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 180000,
+          "contextWindowSize": 1050000,
+          "extra_body": {
+            "reasoning_effort": "medium"
+          }
+        }
+      },
+      {
+        "id": "gpt-5.6-sol-chatgpt",
+        "name": "gpt-5.6-sol [ChatGPT]",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 180000,
+          "contextWindowSize": 1050000,
+          "extra_body": {
+            "reasoning_effort": "medium"
+          }
+        }
+      },
+      {
+        "id": "gpt-5.6-terra",
+        "name": "gpt-5.6-terra",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 180000,
+          "contextWindowSize": 1050000,
+          "extra_body": {
+            "reasoning_effort": "medium"
+          }
+        }
+      },
+      {
+        "id": "gpt-5.6-terra-chatgpt",
+        "name": "gpt-5.6-terra [ChatGPT]",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 180000,
+          "contextWindowSize": 1050000,
+          "extra_body": {
+            "reasoning_effort": "medium"
+          }
+        }
+      },
+      {
+        "id": "gpt-5.6-luna",
+        "name": "gpt-5.6-luna",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 180000,
+          "contextWindowSize": 1050000,
+          "extra_body": {
+            "reasoning_effort": "medium"
+          }
+        }
+      },
+      {
+        "id": "gpt-5.6-luna-chatgpt",
+        "name": "gpt-5.6-luna [ChatGPT]",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 180000,
+          "contextWindowSize": 1050000,
+          "extra_body": {
+            "reasoning_effort": "medium"
+          }
+        }
+      },
+      {
+        "id": "gpt-5.4-mini",
+        "name": "gpt-5.4-mini",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "contextWindowSize": 1000000,
+          "samplingParams": {
+            "temperature": 0.7
+          }
+        }
+      },
+      {
+        "id": "gpt-5.4-mini-chatgpt",
+        "name": "gpt-5.4-mini [ChatGPT]",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "contextWindowSize": 1000000,
+          "samplingParams": {
+            "temperature": 0.7
+          }
+        }
+      },
+      {
+        "id": "gpt-4o",
+        "name": "gpt-4o",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "contextWindowSize": 256000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "max_tokens": 16384
+          }
+        }
+      },
+      {
+        "id": "gpt-4o-mini",
+        "name": "gpt-4o-mini",
+        "envKey": "OPENAI_API_KEY",
+        "baseUrl": "http://127.0.0.1:11435/v1",
+        "generationConfig": {
+          "timeout": 120000,
+          "contextWindowSize": 256000,
+          "samplingParams": {
+            "temperature": 0.7,
+            "max_tokens": 16384
+          }
+        }
+      }
+    ]
+  },
+  "env": {
+    "DEEPSEEK_API_KEY": "sk-your-deepseek-api-key",
+    "DASHSCOPE_API_KEY": "sk-your-dashscope-api-key",
+    "OPENAI_API_KEY": "sk-your-openai-platform-api-key"
+  }
+}

@@ -1,0 +1,25 @@
+# 敏感文件（绝不提交）
+.env
+*.env.local
+**/auth.json
+**/auth.gpt.json
+
+# 日志
+*.log
+proxy_v*.log
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+dist/
+
+# 编辑器
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# 备份文件
+*.bak*
