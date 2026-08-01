@@ -1557,7 +1557,18 @@ class ProxyHandler(BaseHTTPRequestHandler):
                         return
                     chunk = resp.read(4096)
                     if not chunk:
-                        break
+                        # 上游 EOF 但未观察到 terminal 事件：补发失败事件，
+                        # 否则 Codex 客户端等待 response.done → turn hang
+                        log.err(
+                            f"GPT passthrough: upstream EOF without terminal event "
+                            f"(model={model})"
+                        )
+                        yield from _failed_response_sse(
+                            f"Upstream stream ended without terminal event (model={model})",
+                            model,
+                            "proxy_disconnected",
+                        )
+                        return
                     # TTFB first_token: 首个 SSE 数据块的到达时间
                     if not first_token_logged:
                         first_token_logged = True
@@ -2110,6 +2121,7 @@ class ProxyHandler(BaseHTTPRequestHandler):
                 log.ttfb(ttfb_connect_ms, model, "connect")
                 _set_socket_read_timeout(conn, GPT_STREAM_IDLE_TIMEOUT)
                 first_token_logged = False
+                sent_finish = False  # 是否已向客户端发过带 finish_reason 的 chunk
                 resp_id = _rand_id("chatcmpl")
                 created = int(time.time())
                 buf = b""
@@ -2152,9 +2164,20 @@ class ProxyHandler(BaseHTTPRequestHandler):
                             # Responses SSE → Chat Completions SSE 转换
                             chunk_json = _responses_to_chat_completion_chunk(evt, resp_id, created, model)
                             if chunk_json:
+                                # 记录是否已发送带 finish_reason 的 chunk（stop / tool_calls）
+                                if chunk_json.get("choices") and chunk_json["choices"][0].get("finish_reason"):
+                                    sent_finish = True
                                 yield f"data: {json.dumps(chunk_json, ensure_ascii=False)}\n\n"
                         except (json.JSONDecodeError, ValueError):
                             pass
+                # 上游断流（EOF）时若从未发过 finish_reason，补发合成 stop chunk，
+                # 否则 Qwen Code 等客户端报 "Model stream ended without a finish reason"
+                if not sent_finish:
+                    log.err(
+                        f"GPT Chat→Stream: upstream EOF without finish_reason "
+                        f"(model={model}); appending synthetic stop"
+                    )
+                    yield f'data: {json.dumps({"id": resp_id, "object": "chat.completion.chunk", "created": created, "model": model, "choices": [{"index": 0, "delta": {}, "finish_reason": "stop"}]})}\n\n'
                 yield "data: [DONE]\n\n"
             except Exception as e:
                 log.err(f"GPT Chat→Stream error: {e}")

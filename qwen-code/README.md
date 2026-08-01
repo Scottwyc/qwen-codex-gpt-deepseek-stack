@@ -47,6 +47,9 @@ vim ~/.qwen/settings.json
 - **ChatGPT 后端不支持 `max_output_tokens` / `max_tokens`**：任何输出长度控制参数都会返回 400
 - **`reasoning.effort=none` 输出预算低**：约 400 tokens，复杂工具任务会被截断。使用 `medium`（约 3000+ tokens）
 - **多模态图片**：Qwen Code 发送 `image_url`，代理自动转换为后端支持的 `input_image`
+- **超大上下文断流**：上下文累积到 ~3MB（1000+ 消息）时 ChatGPT 后端可能中途断流。代理会补发合成
+  `finish_reason`，客户端不再报 `Model stream ended without a finish reason`，但断流点后的内容会丢失。
+  建议长任务及时压缩上下文或开新会话（详见 [`../docs/troubleshooting.md`](../docs/troubleshooting.md) 第 19 项）
 
 ## Platform API 直连（可选，不经过代理）
 

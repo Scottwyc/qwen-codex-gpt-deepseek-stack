@@ -1,4 +1,4 @@
-# Troubleshooting：15 项已知问题与修复记录
+# Troubleshooting：19 项已知问题与修复记录
 
 生产环境（Qwen Code + Codex + GPT 双后端）中逐步修复的问题汇总。
 按时间顺序排列，编号即修复顺序。
@@ -24,6 +24,7 @@
 | 17 | **Platform API 直连流式 hang** | direct 透传 keep-alive 不关 + 无 `[DONE]` 检测 | `Connection: close` + `[DONE]` 检测 + `shutdown(SHUT_WR)` |
 | 18 | **Platform API 400 reasoning/max_tokens** | Qwen Code 发 Responses 风格字段（nested `reasoning`、`max_tokens`），官方 Chat Completions 不接受 | body 清理：`reasoning` dict → `reasoning_effort`，`max_tokens` → `max_completion_tokens` |
 | 18b | **Platform API 400 tools+reasoning** | 官方限制 gpt-5.x 在 /v1/chat/completions 中 tools 时 reasoning 必须 none | 有 tools 时动态降级 `reasoning_effort=none` |
+| 19 | **Qwen Code "Model stream ended without a finish reason"** | 上游 ChatGPT 后端对超大上下文（~3.2MB / 1000+ 消息）请求中途断流（EOF），代理只发 `[DONE]`，从未发过带 finish_reason 的 chunk | Chat Completions 路径 EOF 时补发合成 `finish_reason:"stop"` chunk；passthrough 路径 EOF 时补发 `response.failed` + `[DONE]` |
 
 ## 关键修复细节
 
@@ -85,6 +86,30 @@ data: [DONE]
 
 **验证**：`codex exec` 之前 40+ 秒不退出；修复后正常完成。
 复杂工具任务（mkdir → write_file → read 回读）端到端成功，产物验证存在。
+
+### 19：Model stream ended without a finish reason（超大上下文断流）
+
+**症状**：Qwen Code（走代理 `-chatgpt`）在长任务运行到上下文极大时报
+`✕[API Error: Model stream ended without a finish reason.]`，Ctrl+Y 重试仍反复报错。
+
+**根因**：长任务上下文累积到 ~3.2MB（1000+ 条消息）后，上游 ChatGPT 后端
+（`chatgpt.com/backend-api/codex/responses`）对这些超大请求**中途断流**（代理日志特征：
+只有 `TTFB connect`，无 `first_token`、无 `[USAGE]`、无 `[FC] done`，`TIME 5-9s`）。
+此时 `_handle_gpt_chat_to_stream` 读到上游 EOF 后只发 `data: [DONE]`，
+**从未发过带 `finish_reason` 的 chunk** → Qwen Code 判定流异常终止。
+
+**修复**：
+1. Chat Completions 路径（Qwen Code）：循环内跟踪 `sent_finish`；EOF 时若从未发过
+   finish_reason，补发合成 `finish_reason: "stop"` 空 delta chunk 再 `[DONE]`，并记 error 日志
+2. passthrough 路径（Codex）：EOF 且未观察到 terminal 事件时，补发 `response.failed` + `[DONE]`，
+   避免 Codex 客户端等待 `response.done` → turn hang
+
+**验证**（2026-08-01，代理 v55）：
+- 正常流式请求：内容 delta → `finish_reason:"stop"` → `[DONE]`，无回归
+- 上游断流场景：不再报 finish reason 错误，流正常结束
+
+**注意**：补发 stop 只保证客户端不报错/不 hang；断流点之后的输出内容确实丢失。
+超大上下文（>3MB）仍会触发上游断流，建议长任务及时压缩上下文或开新会话。
 
 ## turn hang 最终定论（2026-08-01）
 
