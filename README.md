@@ -38,7 +38,7 @@
 | [`chatgpt-oauth/`](chatgpt-oauth/) | ChatGPT OAuth 设备码登录流程 |
 | [`docs/codex-dual-mode.md`](docs/codex-dual-mode.md) | **推荐架构**：Codex GPT 直连 + DS 走代理双 profile |
 | [`tests/`](tests/) | 回归测试脚本 |
-| [`docs/troubleshooting.md`](docs/troubleshooting.md) | 16 项已知问题与修复记录 |
+| [`docs/troubleshooting.md`](docs/troubleshooting.md) | 19 项已知问题与修复记录 |
 
 ## 快速开始
 
@@ -81,7 +81,7 @@ bash tests/test_complex_tool_call.sh
 - **GPT 双重路由**：ChatGPT OAuth（订阅）优先，Platform API key 回退
 - **Chat Completions ↔ Responses 全格式转换**：消息、tools、tool_choice、reasoning、多模态
 - **SSE 流式翻译**：`function_call` 事件 → OpenAI 标准 `tool_calls` 增量格式
-- **16 项生产环境 bug 修复**（详见 `docs/troubleshooting.md`）
+- **19 项生产环境 bug 修复**（详见 `docs/troubleshooting.md`，最新：超大上下文断流 EOF 补发 `finish_reason`）
 
 ## License
 
