@@ -4,6 +4,11 @@
 - **ChatGPT 订阅（OAuth）**：`-chatgpt` 后缀模型（推荐，无需 OpenAI Platform API key）
 - **OpenAI Platform API**：非 `-chatgpt` 模型（需要 `OPENAI_API_KEY`）
 
+> **已验证（2026-08-07）**：Qwen Code 走综合代理同时打通 GPT 的 **API key** 与 **OAuth** 两条路：
+> - 代理 `.env` 配 `openai_api_key` → 非 `-chatgpt` 模型走 Platform API（当前生效路径）
+> - 代理检测到有效 ChatGPT OAuth tokens → `-chatgpt` 模型走订阅
+> - 两条路都经 `http://127.0.0.1:11435/v1` 一个端点，代理按模型后缀/认证自动选择
+
 ## 配置步骤
 
 ### 1. 安装综合代理
